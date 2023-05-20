@@ -195,9 +195,10 @@ fn build_comment(
 					.get("s").unwrap_or(&Value::Null)
 					.get("u").unwrap_or(&Value::Null);
 
-				let x = val.as_str().map(|s| format!(r#"<img src="{s}"/>"#)).unwrap_or_else(|| {
-					numbers_surrounded
-				});
+				let x = val.as_str()
+					.map(|s| s.replace("https://reddit-econ-prod-assets-permanent.s3.amazonaws.com", ""))
+					.map(|s| format!(r#"<img src="{s}" style="max-width: 200px"/>"#))
+					.unwrap_or_else(|| { numbers_surrounded });
 				return x
 			}
 		}
