@@ -9,7 +9,8 @@ use hyper::{Body, Request, Response};
 
 use askama::Template;
 use once_cell::sync::Lazy;
-use regex::Regex;
+use regex::{Regex, Captures};
+use serde_json::Value;
 use std::collections::HashSet;
 
 // STRUCTS
@@ -154,6 +155,9 @@ fn query_comments(
 
 	results
 }
+
+static SUBREDDIT_EMOJI_PLACEHOLDER: Lazy<Regex> = Lazy::new(|| Regex::new(r#":([0-9]+):"#).unwrap());
+
 #[allow(clippy::too_many_arguments)]
 fn build_comment(
 	comment: &serde_json::Value,
@@ -175,6 +179,40 @@ fn build_comment(
 	} else {
 		rewrite_urls(&val(comment, "body_html"))
 	};
+
+	// CUSTOM:
+	let body = SUBREDDIT_EMOJI_PLACEHOLDER.replace_all(&body, |captures: &Captures| {
+		let numbers_surrounded = captures[0].to_owned();
+		let numbers = captures[1].to_owned();
+		let metadata = comment["data"]["media_metadata"].as_object();
+
+		if let Some(metadata) = metadata {
+
+			if let Some(matching_key) = metadata.keys().find(|key| key.contains(&numbers)) {
+
+				let val = metadata
+					.get(matching_key).unwrap_or(&Value::Null)
+					.get("s").unwrap_or(&Value::Null)
+					.get("u").unwrap_or(&Value::Null);
+
+				let x = val.as_str().map(|s| format!(r#"<img src="{s}"/>"#)).unwrap_or_else(|| {
+					numbers_surrounded
+				});
+				return x
+			}
+		}
+		numbers_surrounded
+	}).into_owned();
+
+	//[].data.children[@kind=t1].data.media_metadata.emote|SNIPPET|{numbers}.s.u
+	// 							  && .body="![img](emote|SNIPPET|3798)"
+
+	// No need to dig, comment parameter = [].data.children[].data
+	// After body variable is html, look for :[0-9]+: and replace them with comment.media_metadata.emote|SNIPPET|{numbers}.s.u
+	// You can use a "FnMut(&Captures<'_>) -> AsRef<str>"" as argument to replace_all, look up url if present.
+	// https://www.reddit.com/dev/api/
+	// 
+
 	let kind = comment["kind"].as_str().unwrap_or_default().to_string();
 
 	let unix_time = data["created_utc"].as_f64().unwrap_or_default();
