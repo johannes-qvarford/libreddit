@@ -851,10 +851,14 @@ pub fn format_url(url: &str) -> String {
 }
 
 static REDDIT_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"href="(https|http|)://(www\.|old\.|np\.|amp\.|)(reddit\.com|redd\.it)/"#).unwrap());
-static REDDIT_PREVIEW_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"https://external-preview\.redd\.it(.*)[^?]").unwrap());
+static REDDIT_PREVIEW_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"https://(external\-)?preview\.redd\.it([^"<]*)"#).unwrap());
+// If the first character inside the a body is a slash, it's probably a useless <a href="/x">/x</a> link
+static RELATIVE_IMAGE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"<a href="(/(?:preview|img|thumb|emoji)[^"]*)">/([^<]*)</a>"#).unwrap());
 
 // Rewrite Reddit links to Libreddit in body of text
 pub fn rewrite_urls(input_text: &str) -> String {
+	println!("rewrite_urls: {input_text}");
+
 	let text1 =
 		// Rewrite Reddit links to Libreddit
 		REDDIT_REGEX.replace_all(input_text, r#"href="/"#)
@@ -864,13 +868,15 @@ pub fn rewrite_urls(input_text: &str) -> String {
 			.replace('\\', "");
 
 	// Rewrite external media previews to Libreddit
-	if REDDIT_PREVIEW_REGEX.is_match(&text1) {
+	let correct_urls = if REDDIT_PREVIEW_REGEX.is_match(&text1) {
 		REDDIT_PREVIEW_REGEX
 			.replace_all(&text1, format_url(REDDIT_PREVIEW_REGEX.find(&text1).map(|x| x.as_str()).unwrap_or_default()))
 			.to_string()
 	} else {
 		text1
-	}
+	};
+
+	RELATIVE_IMAGE_REGEX.replace_all(&correct_urls, r#"<img src="$1" style="max-width: 200px; max-height: 200px;"/>"#).to_string()
 }
 
 // Format vote count to a string that will be displayed.
