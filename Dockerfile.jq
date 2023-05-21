@@ -9,16 +9,17 @@ WORKDIR /libreddit
 
 # create a new empty project
 RUN cargo init
-COPY Cargo.toml Cargo.lock build.rs ./
-COPY ./.git .git
+COPY Cargo.toml Cargo.lock ./
 # build dependencies, when my source code changes, this build can be cached, we don't need to compile dependency again.
 RUN cargo build --target x86_64-unknown-linux-musl --release
 # remove the dummy build.
 RUN cargo clean -p libreddit
 
+COPY ./build.rs ./
 COPY ./static static
 COPY ./templates templates
 COPY ./src src
+COPY ./git .git
 
 RUN cargo build --target x86_64-unknown-linux-musl --release
 
