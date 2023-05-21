@@ -877,6 +877,8 @@ pub fn rewrite_urls(input_text: &str) -> String {
 
 	// CUSTOM:
 	RELATIVE_IMAGE_REGEX.replace_all(&correct_urls, r#"<img src="$1" style="max-width: 200px;"/>"#).to_string()
+
+	
 }
 
 // Format vote count to a string that will be displayed.
