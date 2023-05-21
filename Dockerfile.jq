@@ -19,7 +19,7 @@ COPY ./build.rs ./
 COPY ./static static
 COPY ./templates templates
 COPY ./src src
-COPY ./git .git
+COPY ./.git .git
 
 RUN cargo build --target x86_64-unknown-linux-musl --release
 
