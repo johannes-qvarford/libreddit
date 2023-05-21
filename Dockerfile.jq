@@ -11,10 +11,12 @@ WORKDIR /libreddit
 RUN cargo init
 COPY Cargo.toml Cargo.lock ./
 # build dependencies, when my source code changes, this build can be cached, we don't need to compile dependency again.
-RUN cargo build
+RUN cargo build --target x86_64-unknown-linux-musl --release
 # remove the dummy build.
 RUN cargo clean -p libreddit
 
+COPY ./static static
+COPY ./templates templates
 COPY ./src src
 
 RUN cargo build --target x86_64-unknown-linux-musl --release
