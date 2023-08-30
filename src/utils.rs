@@ -854,6 +854,8 @@ static REDDIT_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"href="(https|http|
 static REDDIT_PREVIEW_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"https://(external\-)?preview\.redd\.it([^"<]*)"#).unwrap());
 // CUSTOM: If the first character inside the a body is a slash, it's probably a useless <a href="/x">/x</a> link
 static RELATIVE_IMAGE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"<a href="(/(?:preview|img|thumb|emoji)[^"]*)">/([^<]*)</a>"#).unwrap());
+static RELATIVE_IMAGE_IN_POST_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r#"<a id="post_url" href="(/(?:preview|img|thumb|emoji)[^"]*)" rel="nofollow">/([^<]*)</a>"#).unwrap());
+
 
 // Rewrite Reddit links to Libreddit in body of text
 pub fn rewrite_urls(input_text: &str) -> String {
@@ -876,9 +878,8 @@ pub fn rewrite_urls(input_text: &str) -> String {
 	};
 
 	// CUSTOM:
-	RELATIVE_IMAGE_REGEX.replace_all(&correct_urls, r#"<img src="$1" style="max-width: 200px;"/>"#).to_string()
-
-	
+	let correct_urls = RELATIVE_IMAGE_REGEX.replace_all(&correct_urls, r#"<img src="$1" style="max-width: 200px;"/>"#).to_string();
+	RELATIVE_IMAGE_IN_POST_REGEX.replace_all(&correct_urls, r#"<img id="post_url" src="$1" rel="nofollow" style="max-width: 200px;"/>"#).to_string()
 }
 
 // Format vote count to a string that will be displayed.
